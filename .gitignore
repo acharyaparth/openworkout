@@ -1,0 +1,24 @@
+# Android / Gradle
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+app/build/
+build/
+
+# Secrets — never commit
+.env
+.env.*
+*.keystore
+*.jks
+
+# Screen recording (large binary reference, kept out of git)
+/screenrecording/
+
+# Your personal program is generated locally during setup — keep it out of the template repo.
+/app/src/main/assets/workouts.json

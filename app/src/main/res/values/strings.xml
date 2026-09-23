@@ -1,0 +1,4 @@
+<resources>
+    <!-- BRAND: your app's name. Change this (or let the setup flow set it). -->
+    <string name="app_name">My Workout</string>
+</resources>
