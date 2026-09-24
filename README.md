@@ -27,14 +27,14 @@ data lives on your phone, with a one-tap local backup.
    brew install --cask android-commandlinetools
    ```
    Don't worry about the details — Claude will check what's missing and walk you through it.
-2. **Clone this repo** and open it in Claude Code:
-   ```sh
-   git clone <your-fork-url> && cd openworkout
-   claude
+2. **Prepare your phone** to accept the app over USB (see the next section).
+3. **Open [Claude Code](https://claude.com/claude-code)** (the terminal/IDE tool — not the
+   web app) and paste this prompt:
+   ```text
+   Clone https://github.com/acharyaparth/openworkout and follow its CLAUDE.md to build and install my own workout app on my Android phone.
    ```
-3. **Prepare your phone** to accept the app over USB (see the next section).
-4. **Say:** `set up my workout app` — Claude reads its onboarding playbook (`CLAUDE.md`),
-   asks a few questions, builds your branded app, and installs it on your plugged-in phone.
+   Claude clones the repo, reads its onboarding playbook, asks you a few questions (app name,
+   color, your routine), and installs your branded app on your plugged-in phone.
 
 ⏱️ **Time:** a few minutes if the Android toolchain is already installed; ~15–20 minutes
 the first time (mostly the one-time tool install).
