@@ -32,11 +32,46 @@ data lives on your phone, with a one-tap local backup.
    git clone <your-fork-url> && cd openworkout
    claude
    ```
-3. **Say:** `set up my workout app` — Claude reads its onboarding playbook (`CLAUDE.md`),
+3. **Prepare your phone** to accept the app over USB (see the next section).
+4. **Say:** `set up my workout app` — Claude reads its onboarding playbook (`CLAUDE.md`),
    asks a few questions, builds your branded app, and installs it on your plugged-in phone.
 
 ⏱️ **Time:** a few minutes if the Android toolchain is already installed; ~15–20 minutes
 the first time (mostly the one-time tool install).
+
+## Prepare your phone (one-time, ~2 minutes)
+
+The app installs over USB, so your phone has to allow it. This is the standard Android
+"developer mode" — you are **not** rooting, unlocking the bootloader, or changing anything
+permanent, and you don't need the Play Store.
+
+1. **Turn on Developer Options:** Settings → **About phone** → tap **Build number** seven
+   times (you'll see "You are now a developer").
+2. **Turn on USB debugging:** Settings → **System → Developer options** → enable **USB
+   debugging**. (On some phones it's under System → Advanced, or just search settings for
+   "USB debugging".)
+3. **Plug the phone into your computer** with a USB cable. Use a **data** cable — many cheap
+   cables are charge-only. If it isn't detected, try a different cable or port.
+4. **Allow the computer:** the phone pops up **"Allow USB debugging?"** showing your
+   computer's fingerprint. Tap **Allow** and check **"Always allow from this computer."**
+5. If asked, set the USB mode to **File Transfer** (not "Charging only").
+
+**Verify it worked** — `adb devices` should list your phone as `device`:
+
+```sh
+$ adb devices
+List of devices attached
+A1B2C3D4E5F6   device
+```
+
+- `unauthorized` → you haven't tapped **Allow** on the phone yet (unlock it and look for the
+  prompt).
+- empty list → the cable/port isn't carrying data; swap the cable, then run
+  `adb kill-server && adb start-server`.
+
+Claude runs this check for you (`scripts/preflight.sh`) and tells you what's missing, but the
+on-phone taps are yours to do. **macOS** works once `adb` is installed; on **Linux** you may
+need a one-line `udev` rule for your phone's vendor and to be in the `plugdev` group.
 
 ## How it works
 
