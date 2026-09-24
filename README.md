@@ -61,7 +61,7 @@ permanent, and you don't need the Play Store.
 ```sh
 $ adb devices
 List of devices attached
-A1B2C3D4E5F6   device
+A1B2C3D4E5F6     device
 ```
 
 - `unauthorized` → you haven't tapped **Allow** on the phone yet (unlock it and look for the
