@@ -10,7 +10,15 @@ class Repository(
     private val workoutDao: WorkoutDao,
     private val structureDao: StructureDao,
     private val sessionDao: SessionDao,
+    private val measurementDao: MeasurementDao,
 ) {
+    // ---- Progress: body measurements + training stats ----
+    fun measurements(): Flow<List<Measurement>> = measurementDao.observeAll()
+    suspend fun addMeasurement(metric: String, unit: String, value: Double) =
+        measurementDao.insert(Measurement(metric = metric, unit = unit, value = value))
+    suspend fun deleteMeasurement(id: Long) = measurementDao.delete(id)
+    fun sessionStats(): Flow<List<SessionStat>> = sessionDao.observeSessionStats()
+
     // ---- Programs ----
     fun programs(): Flow<List<Program>> = programDao.observeAll()
     /** The program the schedule follows: the top (active, then most recent) one. */

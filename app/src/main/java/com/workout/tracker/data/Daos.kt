@@ -105,6 +105,14 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE finishedAt IS NOT NULL ORDER BY finishedAt DESC")
     fun observeFinishedSessions(): Flow<List<WorkoutSession>>
 
+    /** Per finished session: date, total volume (kg), and duration — for the Progress charts. */
+    @Query("SELECT s.id AS sessionId, s.finishedAt AS finishedAt, " +
+        "COALESCE(SUM(CASE WHEN l.done = 1 THEN l.weightKg * l.reps ELSE 0 END), 0) AS volumeKg, " +
+        "(s.finishedAt - s.startedAt) AS durationMs " +
+        "FROM sessions s LEFT JOIN set_logs l ON l.sessionId = s.id " +
+        "WHERE s.finishedAt IS NOT NULL GROUP BY s.id ORDER BY s.finishedAt ASC")
+    fun observeSessionStats(): Flow<List<SessionStat>>
+
     @Insert suspend fun insertSetLog(log: SetLog): Long
     @Update suspend fun updateSetLog(log: SetLog)
     @Delete suspend fun deleteSetLog(log: SetLog)
@@ -132,6 +140,7 @@ interface BackupDao {
     @Query("SELECT * FROM exercises") suspend fun allExercises(): List<Exercise>
     @Query("SELECT * FROM sessions") suspend fun allSessions(): List<WorkoutSession>
     @Query("SELECT * FROM set_logs") suspend fun allSetLogs(): List<SetLog>
+    @Query("SELECT * FROM measurements") suspend fun allMeasurements(): List<Measurement>
 
     @Insert suspend fun insertPrograms(rows: List<Program>)
     @Insert suspend fun insertWorkouts(rows: List<Workout>)
@@ -140,8 +149,10 @@ interface BackupDao {
     @Insert suspend fun insertExercises(rows: List<Exercise>)
     @Insert suspend fun insertSessions(rows: List<WorkoutSession>)
     @Insert suspend fun insertSetLogs(rows: List<SetLog>)
+    @Insert suspend fun insertMeasurements(rows: List<Measurement>)
 
     // children first to respect foreign keys
+    @Query("DELETE FROM measurements") suspend fun clearMeasurements()
     @Query("DELETE FROM set_logs") suspend fun clearSetLogs()
     @Query("DELETE FROM sessions") suspend fun clearSessions()
     @Query("DELETE FROM exercises") suspend fun clearExercises()
@@ -149,6 +160,21 @@ interface BackupDao {
     @Query("DELETE FROM sections") suspend fun clearSections()
     @Query("DELETE FROM workouts") suspend fun clearWorkouts()
     @Query("DELETE FROM programs") suspend fun clearPrograms()
+}
+
+data class SessionStat(
+    val sessionId: Long,
+    val finishedAt: Long,
+    val volumeKg: Double,
+    val durationMs: Long,
+)
+
+@Dao
+interface MeasurementDao {
+    @Query("SELECT * FROM measurements ORDER BY recordedAt ASC")
+    fun observeAll(): Flow<List<Measurement>>
+    @Insert suspend fun insert(m: Measurement): Long
+    @Query("DELETE FROM measurements WHERE id = :id") suspend fun delete(id: Long)
 }
 
 data class SetLogWithSession(

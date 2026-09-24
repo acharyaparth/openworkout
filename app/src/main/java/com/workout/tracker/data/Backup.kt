@@ -19,6 +19,7 @@ data class BackupData(
     val exercises: List<Exercise> = emptyList(),
     val sessions: List<WorkoutSession> = emptyList(),
     val setLogs: List<SetLog> = emptyList(),
+    val measurements: List<Measurement> = emptyList(),
 )
 
 private val backupJson = Json { prettyPrint = true; ignoreUnknownKeys = true; encodeDefaults = true }
@@ -35,6 +36,7 @@ class BackupManager(private val db: AppDatabase) {
             exercises = dao.allExercises(),
             sessions = dao.allSessions(),
             setLogs = dao.allSetLogs(),
+            measurements = dao.allMeasurements(),
         )
         return backupJson.encodeToString(data)
     }
@@ -44,6 +46,7 @@ class BackupManager(private val db: AppDatabase) {
         val data = backupJson.decodeFromString<BackupData>(json)
         db.withTransaction {
             // wipe children-first
+            dao.clearMeasurements()
             dao.clearSetLogs(); dao.clearSessions(); dao.clearExercises()
             dao.clearGroups(); dao.clearSections(); dao.clearWorkouts(); dao.clearPrograms()
             // insert parents-first
@@ -54,6 +57,7 @@ class BackupManager(private val db: AppDatabase) {
             dao.insertExercises(data.exercises)
             dao.insertSessions(data.sessions)
             dao.insertSetLogs(data.setLogs)
+            dao.insertMeasurements(data.measurements)
         }
     }
 }

@@ -150,6 +150,16 @@ data class SetLog(
     val done: Boolean = false,
 )
 
+@Serializable
+@Entity(tableName = "measurements")
+data class Measurement(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val metric: String,          // "Weight", "Waist", "Body Fat", ...
+    val unit: String,            // "kg", "lbs", "in", "%"
+    val value: Double,
+    val recordedAt: Long = System.currentTimeMillis(),
+)
+
 // ---- Read-only relation graphs ----
 
 data class GroupWithExercises(

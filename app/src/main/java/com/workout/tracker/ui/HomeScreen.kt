@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.automirrored.filled.ListAlt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +50,13 @@ fun HomeScreen(nav: NavHostController) {
                     label = { Text("Programs") },
                     colors = navColors()
                 )
+                NavigationBarItem(
+                    selected = tab == 2,
+                    onClick = { tab = 2 },
+                    icon = { Icon(Icons.Default.ShowChart, contentDescription = null) },
+                    label = { Text("Progress") },
+                    colors = navColors()
+                )
             }
         }
     ) { inner ->
@@ -58,11 +66,12 @@ fun HomeScreen(nav: NavHostController) {
                     onOpenWorkout = { nav.navigate(Routes.overview(it)) },
                     onStartWorkout = { nav.navigate(Routes.player(it)) },
                 )
-                else -> ProgramsScreen(
+                1 -> ProgramsScreen(
                     onOpenProgram = { nav.navigate(Routes.workouts(it)) },
                     onEditProgram = { nav.navigate(Routes.editProgram(it)) },
                     onOpenSettings = { nav.navigate(Routes.SETTINGS) },
                 )
+                else -> com.workout.tracker.ui.progress.ProgressScreen()
             }
         }
     }

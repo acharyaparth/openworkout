@@ -14,6 +14,8 @@ data lives on your phone, with a one-tap local backup.
 - A **player** that logs sets (weight × reps) for lifts and a simple "mark done" for
   warm-ups, core, mobility and cardio.
 - Per-exercise **history** and **records**, plus lifetime stats (workouts, time, volume).
+- A **Progress** tab: log body measurements (weight, waist, …) as trend charts, and see
+  auto **training trends** (volume/duration per workout) from your logged sessions.
 - Everything **on-device**; export/restore a backup file whenever you like.
 
 ## Quickstart

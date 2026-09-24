@@ -16,8 +16,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Exercise::class,
         WorkoutSession::class,
         SetLog::class,
+        Measurement::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -26,6 +27,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun structureDao(): StructureDao
     abstract fun sessionDao(): SessionDao
     abstract fun backupDao(): BackupDao
+    abstract fun measurementDao(): MeasurementDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null
@@ -56,13 +58,25 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 -> v4: add the body-measurements table for the Progress tab. */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `measurements` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`metric` TEXT NOT NULL, `unit` TEXT NOT NULL, " +
+                        "`value` REAL NOT NULL, `recordedAt` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         fun get(context: Context): AppDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "workout.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
             }
     }
 }

@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 class AppContainer(context: Context) {
     private val db = AppDatabase.get(context)
     val repository = Repository(
-        db.programDao(), db.workoutDao(), db.structureDao(), db.sessionDao()
+        db.programDao(), db.workoutDao(), db.structureDao(), db.sessionDao(), db.measurementDao()
     )
     val settings = SettingsStore(context)
     val backup = com.workout.tracker.data.BackupManager(db)
