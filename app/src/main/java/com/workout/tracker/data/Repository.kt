@@ -82,14 +82,15 @@ class Repository(
     suspend fun addExercise(
         groupId: Long, label: String, name: String, prescription: String,
         youtubeUrl: String, targetSets: Int, timeBased: Boolean, tracksWeight: Boolean = true,
-        tracked: Boolean = true,
+        tracked: Boolean = true, logType: String = LogType.WEIGHT_REPS,
     ): Long {
         val pos = structureDao.exercisesFor(groupId).size
         return structureDao.insertExercise(
             Exercise(
                 groupId = groupId, label = label, name = name, prescription = prescription,
                 youtubeUrl = youtubeUrl, targetSets = targetSets.coerceIn(1, 12),
-                timeBased = timeBased, tracksWeight = tracksWeight, tracked = tracked, position = pos
+                timeBased = timeBased, tracksWeight = tracksWeight, tracked = tracked,
+                logType = logType, position = pos
             )
         )
     }
@@ -99,6 +100,10 @@ class Repository(
     // ---- Sessions & logging ----
     suspend fun startSession(workout: Workout): Long =
         sessionDao.insertSession(WorkoutSession(workoutId = workout.id, workoutName = workout.name))
+
+    /** Resume support: the in-progress session for a workout, and stale-session cleanup. */
+    suspend fun activeSession(workoutId: Long) = sessionDao.activeSession(workoutId)
+    suspend fun deleteStaleUnfinished(cutoff: Long) = sessionDao.deleteStaleUnfinished(cutoff)
 
     suspend fun setLogsForSession(sessionId: Long) = sessionDao.setLogsForSession(sessionId)
     fun observeSetLogsForSession(sessionId: Long) = sessionDao.observeSetLogsForSession(sessionId)

@@ -1,6 +1,8 @@
 package com.workout.tracker.ui.edit
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -30,6 +32,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import com.workout.tracker.ui.common.clickableNoRipple
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -167,8 +171,7 @@ fun EditExerciseScreen(groupId: Long, exerciseId: Long?, onDone: () -> Unit) {
     var prescription by remember { mutableStateOf("") }
     var youtube by remember { mutableStateOf("") }
     var sets by remember { mutableStateOf("3") }
-    var timeBased by remember { mutableStateOf(false) }
-    var tracksWeight by remember { mutableStateOf(true) }
+    var logType by remember { mutableStateOf(com.workout.tracker.data.LogType.WEIGHT_REPS) }
     var tracked by remember { mutableStateOf(true) }
 
     LaunchedEffect(exerciseId) {
@@ -176,8 +179,8 @@ fun EditExerciseScreen(groupId: Long, exerciseId: Long?, onDone: () -> Unit) {
             repo.getExercise(exerciseId)?.let {
                 loaded = it
                 label = it.label; name = it.name; prescription = it.prescription
-                youtube = it.youtubeUrl; sets = it.targetSets.toString(); timeBased = it.timeBased
-                tracksWeight = it.tracksWeight; tracked = it.tracked
+                youtube = it.youtubeUrl; sets = it.targetSets.toString()
+                logType = it.logType; tracked = it.tracked
             }
         }
     }
@@ -188,23 +191,27 @@ fun EditExerciseScreen(groupId: Long, exerciseId: Long?, onDone: () -> Unit) {
         Field("Prescription (e.g. 10 each side)", prescription, singleLine = false) { prescription = it }
         Field("YouTube link (optional)", youtube, keyboardType = KeyboardType.Uri) { youtube = it }
         Field("Default sets", sets, keyboardType = KeyboardType.Number) { new -> sets = new.filter { it.isDigit() } }
-        SwitchRow("Tracks weight (uncheck for bodyweight / mobility)", tracksWeight) { tracksWeight = it }
-        SwitchRow("Time-based (hold in seconds)", timeBased) { timeBased = it }
+        LogTypePicker(logType) { logType = it }
         SwitchRow("Tracked (uncheck for a 'just for fun' item)", tracked) { tracked = it }
         Spacer(Modifier.height(8.dp))
         PillButton("Save", onClick = {
             scope.launch {
                 val setCount = sets.toIntOrNull() ?: 3
+                val lt = logType
                 if (exerciseId == null) {
-                    repo.addExercise(groupId, label.trim(), name.trim(), prescription.trim(), youtube.trim(), setCount, timeBased, tracksWeight, tracked)
+                    repo.addExercise(groupId, label.trim(), name.trim(), prescription.trim(), youtube.trim(),
+                        setCount, timeBased = lt == com.workout.tracker.data.LogType.TIME,
+                        tracksWeight = lt == com.workout.tracker.data.LogType.WEIGHT_REPS, tracked = tracked, logType = lt)
                 } else {
                     loaded?.let {
                         repo.updateExercise(
                             it.copy(
                                 label = label.trim(), name = name.trim().ifBlank { it.name },
                                 prescription = prescription.trim(), youtubeUrl = youtube.trim(),
-                                targetSets = setCount.coerceIn(1, 12), timeBased = timeBased,
-                                tracksWeight = tracksWeight, tracked = tracked
+                                targetSets = setCount.coerceIn(1, 12),
+                                timeBased = lt == com.workout.tracker.data.LogType.TIME,
+                                tracksWeight = lt == com.workout.tracker.data.LogType.WEIGHT_REPS,
+                                tracked = tracked, logType = lt
                             )
                         )
                     }
@@ -212,6 +219,32 @@ fun EditExerciseScreen(groupId: Long, exerciseId: Long?, onDone: () -> Unit) {
                 onDone()
             }
         }, enabled = name.isNotBlank(), modifier = Modifier.fillMaxWidth())
+    }
+}
+
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun LogTypePicker(selected: String, onSelect: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text("How it's logged", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(6.dp))
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            com.workout.tracker.data.LogType.all.forEach { t ->
+                val sel = t == selected
+                Box(
+                    Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(50))
+                        .background(if (sel) AppGreen else com.workout.tracker.ui.theme.AppSurfaceHigh)
+                        .clickableNoRipple { onSelect(t) }
+                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                ) {
+                    Text(
+                        com.workout.tracker.data.LogType.label(t),
+                        color = if (sel) androidx.compose.ui.graphics.Color(0xFF06110B) else AppMuted,
+                        style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
     }
 }
 

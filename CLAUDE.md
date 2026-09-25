@@ -90,9 +90,11 @@ Convert their description into that file following **`WORKOUTS_SCHEMA.md`** (rea
 rules:
 - Structure: one program → workouts → sections (Warm-up / Main Exercise / Cooldown) →
   groups (lettered blocks like "A") → exercises.
-- Set `tracksWeight: false` for warm-up, cooldown, mobility, core, and cardio (they become
-  a simple "mark done" with no weight field); `true` for weighted lifts.
-- Set `timeBased: true` for holds/stretches/timed work.
+- Set **`logType`** per exercise with judgment — it decides what the player logs:
+  `"weight_reps"` for loaded lifts (weight + reps table), `"reps"` for bodyweight strength
+  (push-ups, pull-ups, dips — reps only), `"time"` for holds/stretches (planks, wall sits —
+  seconds), `"none"` for warm-up/cooldown/mobility/core/cardio (just "mark done"). Think about
+  how you'd actually record each movement rather than keyword-matching; see `WORKOUTS_SCHEMA.md`.
 - Set `tracked: false` for any playful/non-exercise item the user wants (e.g. "post a gym
   selfie") — it shows as a fun note, not logged, not part of completion.
 - `targetSets` = how many set rows to show (rounds); use the rep scheme to pick it.

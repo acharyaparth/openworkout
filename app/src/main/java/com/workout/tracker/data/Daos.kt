@@ -96,6 +96,14 @@ interface SessionDao {
     suspend fun markFinished(id: Long, finishedAt: Long)
     @Query("DELETE FROM sessions WHERE id = :sessionId") suspend fun deleteSession(sessionId: Long)
 
+    /** The most recent still-in-progress session for a workout (used to resume it). */
+    @Query("SELECT * FROM sessions WHERE workoutId = :workoutId AND finishedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
+    suspend fun activeSession(workoutId: Long): WorkoutSession?
+
+    /** Drop abandoned in-progress sessions older than a cutoff, so they don't linger. */
+    @Query("DELETE FROM sessions WHERE finishedAt IS NULL AND startedAt < :cutoff")
+    suspend fun deleteStaleUnfinished(cutoff: Long)
+
     @Query("SELECT COALESCE(SUM(weightKg * reps), 0) FROM set_logs WHERE done = 1")
     fun observeTotalVolumeKg(): Flow<Double>
 

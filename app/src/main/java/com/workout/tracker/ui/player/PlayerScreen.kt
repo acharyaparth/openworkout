@@ -53,6 +53,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.workout.tracker.AppContainer
 import com.workout.tracker.data.Exercise
+import com.workout.tracker.data.LogType
 import com.workout.tracker.data.Repository
 import com.workout.tracker.data.SectionWithContent
 import com.workout.tracker.data.SetLog
@@ -84,6 +85,9 @@ class SetRowState(
     var done by mutableStateOf(done)
 }
 
+/** Reopen the same workout within this window and it resumes instead of restarting. */
+private const val RESUME_WINDOW_MS = 12L * 60 * 60 * 1000
+
 class PlayerViewModel(
     private val repo: Repository,
     private val settings: SettingsStore,
@@ -101,18 +105,41 @@ class PlayerViewModel(
     init {
         viewModelScope.launch {
             val w = repo.getWorkout(workoutId) ?: return@launch
-            sessionId = repo.startSession(w)
-            startedAtMillis = System.currentTimeMillis()
+            val unit = settings.unit.first()
+            repo.deleteStaleUnfinished(System.currentTimeMillis() - RESUME_WINDOW_MS)
+            // Resume a recent in-progress session for this workout, or start a fresh one.
+            val existing = repo.activeSession(workoutId)
+            val resuming = existing != null &&
+                System.currentTimeMillis() - existing.startedAt < RESUME_WINDOW_MS
+            if (resuming) {
+                sessionId = existing!!.id
+                startedAtMillis = existing.startedAt
+            } else {
+                sessionId = repo.startSession(w)
+                startedAtMillis = System.currentTimeMillis()
+            }
             val c = repo.workoutContentOnce(workoutId)
             content = c
+            val logsByExercise =
+                if (resuming) repo.setLogsForSession(sessionId).groupBy { it.exerciseId } else emptyMap()
             c?.sections?.forEach { sec ->
                 sec.groups.forEach { g ->
                     g.exercises.forEach { ex ->
                         if (!ex.tracked) return@forEach   // "just for fun" items aren't logged
+                        val saved = logsByExercise[ex.id].orEmpty().sortedBy { it.setIndex }
+                        val baseN = if (ex.logType == LogType.NONE) 1 else ex.targetSets.coerceAtLeast(1)
+                        val n = maxOf(baseN, saved.maxOfOrNull { it.setIndex } ?: 0)
                         val list = mutableStateListOf<SetRowState>()
-                        // check-only exercises get a single "mark done" row
-                        val n = if (ex.tracksWeight) ex.targetSets.coerceAtLeast(1) else 1
-                        repeat(n) { list.add(SetRowState(0L, "", "", false)) }
+                        for (i in 1..n) {
+                            val log = saved.find { it.setIndex == i }
+                            if (log != null) {
+                                val wStr = if (log.weightKg > 0.0) unit.fromKg(log.weightKg).trimWeight() else ""
+                                val rStr = if (log.reps > 0) log.reps.toString() else ""
+                                list.add(SetRowState(log.id, wStr, rStr, log.done))
+                            } else {
+                                list.add(SetRowState(0L, "", "", false))
+                            }
+                        }
                         rows[ex.id] = list
                     }
                 }
@@ -132,8 +159,8 @@ class PlayerViewModel(
     }
 
     fun onEdited(exercise: Exercise, row: SetRowState, unit: WeightUnit) {
-        // only hit the DB if the row is already persisted
-        if (row.id != 0L) persist(exercise, row, unit)
+        // persist every edit so nothing is memory-only (survives the app being killed)
+        persist(exercise, row, unit)
     }
 
     private fun persist(exercise: Exercise, row: SetRowState, unit: WeightUnit) {
@@ -515,7 +542,8 @@ private fun ExercisePlayerCard(
     onAddSet: () -> Unit,
     onOpen: () -> Unit,
 ) {
-    val amountLabel = if (exercise.timeBased) "SECS" else "REPS"
+    val showWeight = exercise.logType == LogType.WEIGHT_REPS
+    val amountLabel = if (exercise.logType == LogType.TIME) "SECS" else "REPS"
     Column(
         Modifier
             .fillMaxWidth()
@@ -548,8 +576,8 @@ private fun ExercisePlayerCard(
         }
         Spacer(Modifier.height(10.dp))
 
-        if (!exercise.tracksWeight) {
-            // check-only: bodyweight / mobility / stretch — just mark it done
+        if (exercise.logType == LogType.NONE) {
+            // mobility / cardio / warm-up — just mark it done
             val row = rows.firstOrNull()
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -566,8 +594,10 @@ private fun ExercisePlayerCard(
         // header row
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("SET", color = AppMuted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.width(36.dp))
-            Text(unit.label.uppercase(), color = AppMuted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-            Spacer(Modifier.width(18.dp))
+            if (showWeight) {
+                Text(unit.label.uppercase(), color = AppMuted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+                Spacer(Modifier.width(18.dp))
+            }
             Text(amountLabel, color = AppMuted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Spacer(Modifier.width(34.dp))
         }
@@ -579,12 +609,14 @@ private fun ExercisePlayerCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("${i + 1}", color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.width(36.dp))
-                NumberField(
-                    value = row.weight,
-                    onChange = { row.weight = it; onEdited(row) },
-                    modifier = Modifier.weight(1f)
-                )
-                Text("×", color = AppMuted, modifier = Modifier.width(18.dp), textAlign = TextAlign.Center)
+                if (showWeight) {
+                    NumberField(
+                        value = row.weight,
+                        onChange = { row.weight = it; onEdited(row) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text("×", color = AppMuted, modifier = Modifier.width(18.dp), textAlign = TextAlign.Center)
+                }
                 NumberField(
                     value = row.reps,
                     onChange = { row.reps = it; onEdited(row) },

@@ -34,6 +34,7 @@ data class BundleExercise(
     val timeBased: Boolean = false,
     val tracksWeight: Boolean = true,
     val tracked: Boolean = true,
+    val logType: String = LogType.WEIGHT_REPS,
 )
 
 private val json = Json { ignoreUnknownKeys = true }
@@ -59,6 +60,7 @@ suspend fun importBundle(repo: Repository, bundleJson: String) {
                         timeBased = e.timeBased,
                         tracksWeight = e.tracksWeight,
                         tracked = e.tracked,
+                        logType = e.logType,
                     )
                 }
             }

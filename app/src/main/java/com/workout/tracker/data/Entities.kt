@@ -9,7 +9,7 @@ import androidx.room.Relation
 import kotlinx.serialization.Serializable
 
 /**
- * The program/workout structure mirrors a coach-style model:
+ * The program/workout structure is a simple hierarchy:
  *   Program (a "Block") -> Workout -> Section -> Group (a lettered block) -> Exercise
  * Logged data lives separately so history survives edits to the template:
  *   WorkoutSession -> SetLog
@@ -103,11 +103,26 @@ data class Exercise(
     val prescription: String = "", // "10 each side, dbs on shoulders"
     val youtubeUrl: String = "",
     val targetSets: Int = 3,
-    val timeBased: Boolean = false, // true -> the numeric field is seconds, not reps
-    val tracksWeight: Boolean = true, // false -> bodyweight/mobility: just mark done, no weight
+    val timeBased: Boolean = false, // legacy; superseded by logType
+    val tracksWeight: Boolean = true, // legacy; superseded by logType
     val tracked: Boolean = true, // false -> a "just for fun" note: no logging, no done-gating
+    /** How this exercise is logged: weight_reps | reps | time | none. See [LogType]. */
+    val logType: String = LogType.WEIGHT_REPS,
     val position: Int = 0,
 )
+
+/** What an exercise records. The authoritative field is [Exercise.logType]. */
+object LogType {
+    const val WEIGHT_REPS = "weight_reps"  // load lifts: weight × reps
+    const val REPS = "reps"                // bodyweight reps: push-ups, dips, air squats
+    const val TIME = "time"                // holds/timed: planks, wall sits, stretches
+    const val NONE = "none"                // just mark done: mobility, cardio, warm-ups
+
+    val all = listOf(WEIGHT_REPS, REPS, TIME, NONE)
+    fun label(t: String) = when (t) {
+        WEIGHT_REPS -> "Weight & reps"; REPS -> "Reps only"; TIME -> "Time (seconds)"; else -> "Just mark done"
+    }
+}
 
 @Serializable
 @Entity(
